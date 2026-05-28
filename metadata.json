@@ -1,0 +1,6 @@
+{
+  "name": "도외체험학습 일정 및 미션 기록기",
+  "description": "중학생들을 위한 스마트폰 맞춤형 도외체험학습 일정 확인 및 직업 관찰 소감/미션 제출 웹 앱",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

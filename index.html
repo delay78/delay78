@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>도외체험학습 활동 기록지</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Noto Sans KR", "Inter", "sans-serif"],
+              display: ["Space Grotesk", "Noto Sans KR", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"]
+            }
+          }
+        }
+      }
+    </script>
+
+    <style>
+      /* Smooth transitions */
+      .fade-enter {
+        opacity: 0;
+        transform: translateY(10px);
+        transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+      }
+      .fade-enter-active {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      /* Hide scrollbar for beauty */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      /* Custom glowing active states */
+      .glow-amber {
+        box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+      }
+    </style>
+  </head>
+  <body class="bg-slate-50 min-h-screen text-slate-800 antialiased font-sans select-none">
+
+    <!-- App Container -->
+    <div id="app" class="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-2xl relative border-x border-slate-100 pb-24">
+      
+      <!-- Top Dynamic Realtime Bar -->
+      <header class="bg-white border-b border-slate-100 px-4 py-3 flex justify-between items-center sticky top-0 z-40 shadow-sm">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xl">🚌</span>
+          <span class="font-display font-extrabold text-sm tracking-tight text-slate-900">ACTIVITY LOG</span>
+        </div>
+        <div class="flex items-center gap-2 text-[11px] font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
+          <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+          <span id="realtime-clock">00:00:00</span>
+        </div>
+      </header>
+
+      <!-- Main Layout Zones (Re-rendered dynamically) -->
+      <main id="main-content" class="flex-1 p-4 flex flex-col gap-4">
+        <!-- Content injected dynamically via render() -->
+      </main>
+
+      <!-- Setup Info Accordion in Footer (Aesthetic & Useful) -->
+      <footer class="mt-auto px-4 py-4 bg-slate-50 border-t border-slate-200/60 text-center">
+        <button onclick="toggleSetupGuide()" class="text-[10px] font-medium text-slate-400 hover:text-slate-600 inline-flex items-center gap-1 transition-all">
+          <i data-lucide="settings" class="w-3 h-3"></i>
+          구글 스프레드시트 연동 가이드 및 API 설정 보기
+        </button>
+        <div id="setup-guide-box" class="hidden mt-3 text-left bg-white p-3 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-2.5 transition-all">
+          <div class="font-bold text-slate-800 flex items-center gap-1">
+            <span class="w-1.5 h-3 bg-teal-500 rounded-full inline-block"></span>
+            교사용 구글 스프레드시트 연동 방법
+          </div>
+          <div class="space-y-1.5 text-[11px] leading-relaxed">
+            <span class="font-semibold text-teal-700 block">💡 1단계: 구글 스프레드시트 개설</span>
+            <p>구글 드라이브에 새 스프레드시트를 만들고, 첫 행(A1~K1)에 다음 열 제목을 똑같이 입력해주세요:</p>
+            <div class="bg-slate-50 p-2 rounded font-mono select-all overflow-x-auto text-slate-500 border border-slate-100 text-[10px]">
+              A: timestamp | B: team | C: studentClass | D: studentNumber | E: studentName | F: location | G: jobObserved | H: jobDescription | I: reflection | J: missionText | K: photoBase64
+            </div>
+          </div>
+          <div class="space-y-1 text-[11px] leading-relaxed">
+            <span class="font-semibold text-teal-700 block">💡 2단계: 앱스 스크립트 작성 및 배포</span>
+            <p>시트 메뉴에서 <strong>[확장 프로그램] → [Apps Script]</strong>를 누르고 기존 코드를 지운 뒤, 아래 스크립트를 붙여넣으세요:</p>
+            <pre class="bg-slate-50 p-2 rounded text-[9px] font-mono overflow-x-auto text-slate-500 border border-slate-100 max-h-32 select-all no-scrollbar">
+function doPost(e) {
+  try {
+    var session = LockService.getScriptLock();
+    session.waitLock(30000);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+    
+    if (Array.isArray(data)) {
+      data.forEach(function(row) {
+        sheet.appendRow([
+          row.timestamp,
+          row.team,
+          row.studentClass,
+          row.studentNumber,
+          row.studentName,
+          row.location,
+          row.jobObserved,
+          row.jobDescription,
+          row.reflection,
+          row.missionText,
+          row.photoBase64 || ""
+        ]);
+      });
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader('Access-Control-Allow-Origin', '*');
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader('Access-Control-Allow-Origin', '*');
+  } finally {
+    session.releaseLock();
+  }
+}
+function doOptions(e) {
+  return ContentService.createTextOutput("")
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}</pre>
+          </div>
+          <p class="text-[10px] text-slate-400">
+            ※ [배포] → [새 배포] 클릭 후 유형을 <strong>웹 앱</strong>으로 지정하고, 액세스 권한을 <strong>"모든 사용자(Anyone)"</strong>로 설정한 뒤 배포하시면 완료됩니다.
+          </p>
+        </div>
+      </footer>
+
+    </div>
+
+    <!-- Alert / Toast / Notification Dialog System -->
+    <div id="modal-container" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden transition-all">
+      <div id="modal-card" class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-150 transform scale-95 opacity-0 transition-all duration-300">
+        <!-- Content dynamically populated -->
+      </div>
+    </div>
+
+    <!-- Application Core Script -->
+    <script>
+      // ========================================================
+      // 1. Static Itinerary Data
+      // ========================================================
+      const ITINERARY_DATA = {
+        "A팀": {
+          1: [
+            {
+              location: "공항",
+              emoji: "✈️",
+              description: "새로운 탐험이 시작되는 곳! 수많은 승객이 질서정연하게 이동하는 거대한 항공 허브입니다.",
+              tips: ["항공기 조종사(파일럿)", "객실 승무원", "지상 조업 요원", "항공 교통 관제사", "세관 공무원"]
+            },
+            {
+              location: "애슐리 퀸즈",
+              emoji: "🍕",
+              description: "맛있는 요리들이 가득한 뷔페! 외식 산업의 트렌드와 주방의 빠른 템포를 몸소 느껴봅시다.",
+              tips: ["전문 요리사(셰프)", "외식 프랜차이즈 메뉴 개발자", "매장 총괄 매니저", "위생 및 식자재 관리사"]
+            },
+            {
+              location: "LG 디스커버리랩",
+              emoji: "🧪",
+              description: "최첨단 AI 인공지능, 자율주행, 로보틱스 기술을 오감으로 직접 체험하는 미래 탐구 공간입니다.",
+              tips: ["AI 알고리즘 연구원", "자율주행 소프트웨어 엔지니어", "로봇 기구 설계 공학자", "IT 제품 UX/UI 디자이너"]
+            },
+            {
+              location: "고척스카이돔",
+              emoji: "⚾",
+              description: "우천 시에도 경기할 수 있는 국내 유일의 돔 경기장! 대형 이벤트 기획과 엔터테인먼트의 중심지입니다.",
+              tips: ["스포츠 에이전트 및 경기 분석관", "구장 안전 진단 전문가", "음향 및 일루미네이션 엔지니어", "스포츠 기자/캐스터"]
+            },
+            {
+              location: "숙소",
+              emoji: "🏨",
+              description: "안전하고 아늑한 휴식을 제공하는 숙소. 보이지 않는 서비스업의 진정성을 이해하는 시간입니다.",
+              tips: ["호텔리어/리셉션 매니저", "객실 코디네이터", "전망 공간 시설 관리 엔지니어", "관광 상품 상품 기획자"]
+            }
+          ],
+          2: [
+            {
+              location: "롯데월드",
+              emoji: "🏰",
+              description: "환상적인 어트랙션과 화려한 퍼레이드가 펼쳐지는 테마파크! 상상력을 극대화시키는 공간입니다.",
+              tips: ["놀이기구 구조 설계사", "테마스토리 작가", "퍼레이드 아티스트/댄서", "MD(기념품 판매) 머천다이저"]
+            },
+            {
+              location: "롯데타워 월드파크 및 석촌 호수",
+              emoji: "🌳",
+              description: "초고층 빌딩의 건축 공학과 자연 생태계인 호수가 조화를 이루는 서울의 대표적인 도심 명소입니다.",
+              tips: ["건축 공학 전문가", "조경 및 녹지 공간 연출가", "생태 환경 보존 해설가", "미디어 파사드 디자이너"]
+            }
+          ],
+          3: [
+            {
+              location: "서강대학교",
+              emoji: "🏫",
+              description: "지성인들의 학문의 전당! 나의 대학 생활을 그려보며 미래 전공 로드맵을 설계해 보는 귀중한 기회입니다.",
+              tips: ["대학교 교수 및 학술 연구원", "대학 행정 교직원", "진로 맞춤 입학 사정관", "청년 교육 프로그램 코디네이터"]
+            },
+            {
+              location: "점심식사",
+              emoji: "🍚",
+              description: "로컬 소상공인의 우수한 손맛을 자랑하는 외식 명소에서 동료들과 따뜻한 밥 동무가 되는 식사 시간입니다.",
+              tips: ["요식업 개인 창업자(셰프 소상공인)", "식재료 유통 통제 전문가", "영양 분석 도우미", "지역 맛집 마케터"]
+            }
+          ]
+        },
+        "B팀": {
+          1: [
+            {
+              location: "공항",
+              emoji: "✈️",
+              description: "새로운 환경과 여정이 열리는 설레는 관문! 항공과 항만 보안, 대고객 운송 서비스의 리얼 월드입니다.",
+              tips: ["항공기 파일럿", "기내 캐빈 승무원", "보안 검색 요원", "공항 물류 매니저", "출입국 심사원"]
+            },
+            {
+              location: "음식점",
+              emoji: "🍲",
+              description: "든든하고 정성 어린 점심을 함께 즐기며 외식 서비스의 체계적인 오더 시스템과 주방 배치를 관측해 봅시다.",
+              tips: ["수석 요리사", "레스토랑 푸드 서비스 디텍터", "소상공인 외식 기획가", "조수 요리사"]
+            },
+            {
+              location: "서강대학교",
+              emoji: "🏫",
+              description: "지정학적 명문 캠퍼스의 전경을 관람하고 대학교의 연구 및 청년들의 캠퍼스 학업 라이프를 탐방합니다.",
+              tips: ["연구 전담 교수", "학생 지도 및 입학 사정관", "대학교 홍보 부서 기획가", "상담 센터 임상 심리사"]
+            },
+            {
+              location: "고척스카이돔",
+              emoji: "⚾",
+              description: "최신 스포츠 과학과 공간 효율 공학이 융합된 돔 구장에서 짜릿한 문화 스포츠 세계의 비하인드를 발견합니다.",
+              tips: ["스포츠 시설 설계 엔지니어", "관중 안전 대처 요원", "스포츠 마케터 및 스폰서 기획자", "구단 프런트 총괄자"]
+            },
+            {
+              location: "숙소",
+              emoji: "🏨",
+              description: "포근하고 정돈된 쉼터! 편안하고 쾌적한 보금자리를 마련해 주는 호텔 서비스팀의 정성을 만나봅니다.",
+              tips: ["게스트 하우스 매니저", "인테리어 디자이너", "안전 재해 대처 관리사", "호텔 서비스 마케터"]
+            }
+          ],
+          2: [
+            {
+              location: "롯데월드",
+              emoji: "🏰",
+              description: "환상적인 어트랙션과 화려한 테마 쇼가 어우러진 모험과 신비의 테마파크를 오감으로 체험합니다.",
+              tips: ["테마파크 디자이너", "안전 점검 기계 엔지니어", "시각 연출 및 조명 감독", "MD 상품 라이선스 담당가"]
+            },
+            {
+              location: "롯데타워 월드파크 및 석촌호수",
+              emoji: "🌳",
+              description: "초고층 빌딩 공법과 자연 조경 생태계가 함께 상생하는 최고의 야외 휴식 및 하이 테크놀로지 관측지입니다.",
+              tips: ["구조 공학 구조 안전 진단가", "수질 정화 기술 연구원", "도심 생태계 조사 인원", "야외 문화 이벤트 기획가"]
+            }
+          ],
+          3: [
+            {
+              location: "LG 디스커버리랩",
+              emoji: "🧪",
+              description: "미래 지향적 AI 로봇 자율 주행 프로그래밍 등 4차 산업혁명의 차세대 첨단 핵심 핵심들을 몸소 배우는 교육장입니다.",
+              tips: ["AI 및 빅데이터 연구 엔지니어", "스마트 로봇 제어 기능사", "소프트웨어 아키텍트", "미래 과학 전시 기획원"]
+            },
+            {
+              location: "애슐리 퀸즈",
+              emoji: "🍕",
+              description: "맛있고 품격 있는 프리미엄 패밀리 레스토랑에서 쉐프들과 외식 서비스 노동자들의 동선을 파악해 봅니다.",
+              tips: ["푸드 디렉터 및 메뉴 디자이너", "요리 주방 수석 지휘 총괄", "글로벌 식재료 공급망 관리원", "매장 공간 마케터"]
+            }
+          ]
+        }
+      };
+
+      const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwBRoqPb1HuOcIPkjkFdnjhvThQxT3PGhm0bKoHsc_RLf7zybIcmcxtd8injUDvl5o/exec";
+
+      // ========================================================
+      // 2. Application Reactive State Layer
+      // ========================================================
+      let state = {
+        studentInfo: {
+          studentClass: "",
+          studentNumber: "",
+          studentName: "",
+          team: ""
+        },
+        selectedDay: 1,
+        missions: {}, // key: locationName -> { jobObserved, jobDescription, reflection, missionText, photoBase64 }
+        expandedLocation: null,
+        submitting: false,
+        submitStatus: null, // 'loading' | 'success' | 'error' | null
+        submitErrorMessage: "",
+        isProfileEditing: false,
+        isRegistered: false
+      };
+
+      // --- Initialization load from localStorage ---
+      function loadPersistedState() {
+        try {
+          const info = localStorage.getItem("field_trip_student_info");
+          if (info) {
+            state.studentInfo = JSON.parse(info);
+            state.isRegistered = true;
+          }
+          const savedMissions = localStorage.getItem("field_trip_student_missions");
+          if (savedMissions) {
+            state.missions = JSON.parse(savedMissions);
+          }
+        } catch (e) {
+          console.error("Failed to load local state", e);
+        }
+      }
+
+      function saveStudentInfoLocal() {
+        localStorage.setItem("field_trip_student_info", JSON.stringify(state.studentInfo));
+      }
+
+      function saveMissionsLocal() {
+        localStorage.setItem("field_trip_student_missions", JSON.stringify(state.missions));
+      }
+
+      // --- Clock update ---
+      function startClock() {
+        setInterval(() => {
+          const now = new Date();
+          const timeString = now.toLocaleTimeString('ko-KR', { hour12: false });
+          document.getElementById("realtime-clock").innerText = timeString;
+        }, 1000);
+      }
+
+      // ========================================================
+      // 3. Render Helpers & Interactive Logic
+      // ========================================================
+      function getAllItineraryLocations() {
+        const team = state.studentInfo.team;
+        if (!team || !ITINERARY_DATA[team]) return [];
+        const result = [];
+        for (let d = 1; d <= 3; d++) {
+          const dayList = ITINERARY_DATA[team][d] || [];
+          dayList.forEach(item => {
+            if (!result.includes(item.location)) {
+              result.push(item.location);
+            }
+          });
+        }
+        return result;
+      }
+
+      function isSingleLocationFinished(loc) {
+        const m = state.missions[loc];
+        if (!m) return false;
+        const hasJob = !!m.jobObserved && m.jobObserved.trim().length > 0;
+        const hasDescLength = (m.jobDescription || "").trim().length >= 50;
+        const hasReflectLength = (m.reflection || "").trim().length >= 50;
+        const hasMission = !!m.missionText && m.missionText.trim().length > 0;
+        const hasPhoto = !!m.photoBase64;
+        return !!(hasJob && hasDescLength && hasReflectLength && hasMission && hasPhoto);
+      }
+
+      function calculateProgress() {
+        const locations = getAllItineraryLocations();
+        if (locations.length === 0) return { percent: 0, completedCount: 0, total: 0 };
+        let completedCount = 0;
+        locations.forEach(loc => {
+          if (isSingleLocationFinished(loc)) {
+            completedCount++;
+          }
+        });
+        const percent = Math.round((completedCount / locations.length) * 100);
+        return { percent, completedCount, total: locations.length };
+      }
+
+      // --- Custom Dynamic Modal ---
+      function showAlertModal(title, message, isSuccess = false) {
+        const container = document.getElementById("modal-container");
+        const card = document.getElementById("modal-card");
+        
+        card.innerHTML = `
+          <div class="text-center space-y-4">
+            <div class="w-14 h-14 ${isSuccess ? 'bg-emerald-50 text-emerald-500' : 'bg-rose-50 text-rose-500'} rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+              ${isSuccess ? '✓' : '⚠️'}
+            </div>
+            <h3 class="text-md font-bold text-slate-900">${title}</h3>
+            <p class="text-xs text-slate-600 whitespace-pre-line leading-relaxed">${message}</p>
+            <button onclick="closeModal()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-xs transition-all active:scale-95 shadow-md">
+              확인
+            </button>
+          </div>
+        `;
+        
+        container.classList.remove("hidden");
+        setTimeout(() => {
+          card.classList.remove("scale-95", "opacity-0");
+          card.classList.add("scale-100", "opacity-100");
+        }, 10);
+      }
+
+      function closeModal() {
+        const container = document.getElementById("modal-container");
+        const card = document.getElementById("modal-card");
+        card.classList.remove("scale-100", "opacity-100");
+        card.classList.add("scale-95", "opacity-0");
+        setTimeout(() => {
+          container.classList.add("hidden");
+        }, 200);
+      }
+
+      function toggleSetupGuide() {
+        const guide = document.getElementById("setup-guide-box");
+        guide.classList.toggle("hidden");
+        guide.scrollIntoView({ behavior: 'smooth' });
+      }
+
+      // --- Form field handle events ---
+      function setStudentInfo(field, value) {
+        state.studentInfo[field] = value;
+        // Auto reset team on team change to keep things aligned
+        if (field === 'team') {
+          state.expandedLocation = null;
+        }
+        saveStudentInfoLocal();
+        render();
+      }
+
+      function handleStudentInfoSubmit(e) {
+        e.preventDefault();
+        const info = state.studentInfo;
+        if (!info.studentName.trim() || !info.studentClass || !info.studentNumber || !info.team) {
+          showAlertModal("입력 오류", "모든 학생 정보를 바르게 입력해 주세요!");
+          return;
+        }
+
+        const classNum = parseInt(info.studentClass, 10);
+        const studNum = parseInt(info.studentNumber, 10);
+        if (isNaN(classNum) || classNum < 1 || classNum > 7) {
+          showAlertModal("입력 오류", "반은 1반부터 7반까지 선택해 주세요!");
+          return;
+        }
+        if (isNaN(studNum) || studNum < 1 || studNum > 25) {
+          showAlertModal("입력 오류", "번호는 1번부터 25번까지만 대입해 주세요!");
+          return;
+        }
+
+        saveStudentInfoLocal();
+        state.isRegistered = true;
+        state.isProfileEditing = false;
+        render();
+      }
+
+      function startProfileEditing() {
+        window.stashedStudentInfo = JSON.parse(JSON.stringify(state.studentInfo));
+        state.isProfileEditing = true;
+        render();
+      }
+
+      function cancelProfileEditing() {
+        if (window.stashedStudentInfo) {
+          state.studentInfo = JSON.parse(JSON.stringify(window.stashedStudentInfo));
+        }
+        state.isProfileEditing = false;
+        render();
+      }
+
+      function resetStudentCredentials() {
+        const yes = confirm("⚠️ 등록된 학년 반/번호 입력을 초기화하시겠습니까? (작성 중인 체험 기록은 손실되지 않습니다.)");
+        if (yes) {
+          state.studentInfo = { studentClass: "", studentNumber: "", studentName: "", team: "" };
+          state.isRegistered = false;
+          state.isProfileEditing = false;
+          saveStudentInfoLocal();
+          state.expandedLocation = null;
+          render();
+        }
+      }
+
+      function changeDay(dayNum) {
+        state.selectedDay = dayNum;
+        render();
+      }
+
+      function toggleAccordion(locName) {
+        if (state.expandedLocation === locName) {
+          state.expandedLocation = null;
+        } else {
+          state.expandedLocation = locName;
+        }
+        render();
+      }
+
+      function updateField(location, field, value) {
+        if (!state.missions[location]) {
+          state.missions[location] = { jobObserved: '', jobDescription: '', reflection: '', missionText: '', photoBase64: '' };
+        }
+        state.missions[location][field] = value;
+        saveMissionsLocal();
+        
+        // Dynamic visual indicators of inputs
+        const count = value.trim().length;
+        const lenSpan = document.getElementById(`char-count-${location}-${field}`);
+        if (lenSpan) {
+          lenSpan.innerText = count;
+        }
+        
+        const statusBox = document.getElementById(`status-badge-${location}-${field}`);
+        if (statusBox) {
+          if (count >= 50) {
+            statusBox.innerText = "✓ 조건 충족";
+            statusBox.className = "text-[10px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-lg";
+            const textareaEl = document.getElementById(`textarea-${location}-${field}`);
+            if (textareaEl) {
+              textareaEl.className = "w-full px-3 py-2 text-xs bg-white border border-emerald-200 focus:border-emerald-400 rounded-xl focus:bg-white focus:outline-none transition-all font-medium text-slate-800 resize-none";
+            }
+          } else {
+            statusBox.innerText = `최소 50자 / 현재 ${count}자`;
+            statusBox.className = "text-[10px] font-bold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-lg";
+            const textareaEl = document.getElementById(`textarea-${location}-${field}`);
+            if (textareaEl) {
+              textareaEl.className = "w-full px-3 py-2 text-xs bg-white border border-slate-200 focus:border-amber-400 rounded-xl focus:bg-white focus:outline-none transition-all font-medium text-slate-800 resize-none";
+            }
+          }
+        }
+
+        // Keep real-time auto-saving feedback glowing beautifully
+        const feedbackEl = document.getElementById(`save-feedback-${location}`);
+        if (feedbackEl) {
+          feedbackEl.innerHTML = `<span class="flex items-center gap-1 text-[10px] text-teal-600 font-medium">🕒 실시간 로컬 자동 저장중...</span>`;
+          if (window.saveTimeout) {
+            clearTimeout(window.saveTimeout);
+          }
+          window.saveTimeout = setTimeout(() => {
+            feedbackEl.innerHTML = `<span class="flex items-center gap-1 text-[10px] text-emerald-600 font-semibold">✓ 안전하게 임시 보관됨</span>`;
+            // Trigger partial update to re-calc progress jewelry and status without heavy DOM redraws
+            updateProgressJewelry();
+          }, 600);
+        }
+      }
+
+      // --- Photo Base64 Uploader & Resizer Canvas ---
+      function triggerPhotoUpload(location, fileInput) {
+        if (!fileInput.files || !fileInput.files[0]) return;
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        // Visual uploading feedback loader on template
+        const photoSection = document.getElementById(`photo-section-${location}`);
+        if (photoSection) {
+          photoSection.innerHTML = `
+            <div class="w-full flex flex-col items-center justify-center py-5 px-3 border-2 border-dashed border-slate-200 bg-slate-50 rounded-xl animate-pulse">
+              <span class="text-xs font-semibold text-slate-500">📷 사진 최적화 및 인코딩 진행 중...</span>
+            </div>
+          `;
+        }
+
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_WIDTH = 500; // Optimum performance size to balance LocalStorage limits & clarity
+            let width = img.width;
+            let height = img.height;
+
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+              ctx.drawImage(img, 0, 0, width, height);
+              const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.65); // Clear 65% quality jpeg base64
+              
+              if (!state.missions[location]) {
+                state.missions[location] = { jobObserved: '', jobDescription: '', reflection: '', missionText: '', photoBase64: '' };
+              }
+              state.missions[location].photoBase64 = compressedDataUrl;
+              saveMissionsLocal();
+              render();
+            }
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function deletePhoto(location) {
+        if (state.missions[location]) {
+          state.missions[location].photoBase64 = "";
+          saveMissionsLocal();
+          render();
+        }
+      }
+
+      // --- Simple DOM query progress updates without complete redraw ---
+      function updateProgressJewelry() {
+        const stats = calculateProgress();
+        const progressPercentBar = document.getElementById('progress-percent-bar');
+        const progressPercentText = document.getElementById('progress-percent-text');
+        const progressCountText = document.getElementById('progress-count-text');
+        
+        if (progressPercentBar) progressPercentBar.style.width = `${stats.percent}%`;
+        if (progressPercentText) progressPercentText.innerText = `${stats.percent}%`;
+        if (progressCountText) progressCountText.innerText = `${stats.completedCount} / ${stats.total}개 완료`;
+      }
+
+      // ========================================================
+      // 4. Data Conversion & Transmission (API Proxy)
+      // ========================================================
+      function buildSubmissionRows() {
+        const locations = getAllItineraryLocations();
+        const now = new Date();
+        const timestampStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ` +
+          `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+        return locations.map(loc => {
+          const m = state.missions[loc] || { jobObserved: '', jobDescription: '', reflection: '', missionText: '', photoBase64: '' };
+          return {
+            timestamp: timestampStr,
+            team: state.studentInfo.team,
+            studentClass: state.studentInfo.studentClass,
+            studentNumber: state.studentInfo.studentNumber,
+            studentName: state.studentInfo.studentName,
+            location: loc,
+            jobObserved: m.jobObserved || '(미기재)',
+            jobDescription: m.jobDescription || '(미기재)',
+            reflection: m.reflection || '(미기재)',
+            missionText: m.missionText || '(미기재)',
+            photoBase64: m.photoBase64 || '(사진 미첨부)'
+          };
+        });
+      }
+
+      async function submitAllMissions() {
+        const locations = getAllItineraryLocations();
+        
+        // 1. Minimum character limit validation
+        const errorLocations = [];
+        let emptyLocationsCount = 0;
+
+        locations.forEach(loc => {
+          const m = state.missions[loc];
+          if (!m) {
+            emptyLocationsCount++;
+            return;
+          }
+          const hasAnyInput = m.jobObserved?.trim() || m.jobDescription?.trim() || m.reflection?.trim() || m.missionText?.trim() || m.photoBase64;
+          if (!hasAnyInput) {
+            emptyLocationsCount++;
+            return;
+          }
+
+          const descLen = (m.jobDescription || '').trim().length;
+          const refLen = (m.reflection || '').trim().length;
+
+          if (descLen < 50 || refLen < 50) {
+            errorLocations.push({ loc, descLen, refLen });
+          }
+        });
+
+        if (errorLocations.length > 0) {
+          let errorMsg = "작성 평가 규정 미달로 제출이 차단되었습니다.\n\n";
+          errorLocations.forEach(err => {
+            errorMsg += `📍 [${err.loc}]\n`;
+            if (err.descLen < 50) {
+              errorMsg += `  - 직업 설명: 현재 ${err.descLen}자 (최소 50자 필요)\n`;
+            }
+            if (err.refLen < 50) {
+              errorMsg += `  - 활동 소감: 현재 ${err.refLen}자 (최소 50자 필요)\n`;
+            }
+          });
+          showAlertModal("제출 차단 알림", errorMsg);
+          return;
+        }
+
+        if (emptyLocationsCount === locations.length) {
+          showAlertModal("미입력 경고", "작성된 체험학습 미션이 없습니다! 최소 1개 이상의 장소에서 소감을 기록하고 제출해 주세요.");
+          return;
+        }
+
+        // 2. Completion warning checks
+        const incompleteLocations = locations.filter(loc => !isSingleLocationFinished(loc));
+        if (incompleteLocations.length > 0) {
+          const confirmSubmit = confirm(
+            `아직 미션 요건(사진 등록, 직업 설명 50자, 소감 50자 조항)을 완전히 완료하지 않은 장소가 ${incompleteLocations.length}개 있습니다.\n이대로 미완성 수준의 리포트를 담아 선생님께 최종 제출하시겠습니까?`
+          );
+          if (!confirmSubmit) return;
+        } else {
+          const confirmSubmit = confirm("모든 장소의 미션을 조건에 부합하게 잘 완료했습니다! 선생님께 최종 제출을 보낼까요?");
+          if (!confirmSubmit) return;
+        }
+
+        // 3. Request dispatch (POST via CORS proxy to GAS Web App)
+        state.submitting = true;
+        render();
+
+        try {
+          const payload = buildSubmissionRows();
+
+          const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors", // Required in older GAS architectures to bypass browser preflight CORS blocks
+            headers: {
+              "Content-Type": "text/plain" // Keep plain text as fallback to bypass preflight locks
+            },
+            body: JSON.stringify(payload)
+          });
+
+          // Due to 'no-cors' option, we will receive opaque responses that block raw response code reads.
+          // Therefore, we trigger a friendly success buffer, since fetch resolving without throwing implies standard delivery.
+          localStorage.removeItem("field_trip_student_missions"); // Clear local buffer on safety submission
+          state.missions = {};
+          saveMissionsLocal();
+          state.submitting = false;
+          render();
+          showAlertModal("🎉 제출 완료", "선생님께 전송 완료!", true);
+        } catch (error) {
+          console.error("Submission script post fail", error);
+          state.submitting = false;
+          render();
+          showAlertModal("⚠️ 전송 에러", `네트워크 연결이 불안정하여 구글 시트 등록에 실패했습니다.\n사유: ${error.message}\n화면 하단의 복사 코드를 수동으로 선생님께 전달해 보관하세요.`);
+        }
+      }
+
+      // ========================================================
+      // 5. Raw Data copy helper to keep redundant protection
+      // ========================================================
+      function copyRawReportToClipboard() {
+        const locations = getAllItineraryLocations();
+        let reportText = `[도외체험학습 활동 기록지 보관용 텍스트 리포트]\n`;
+        reportText += `성명: ${state.studentInfo.studentName} | 반: ${state.studentInfo.studentClass}반 | 번호: ${state.studentInfo.studentNumber}번 | 소속: ${state.studentInfo.team}\n`;
+        reportText += `-----------------------------------\n\n`;
+
+        locations.forEach((loc, idx) => {
+          const m = state.missions[loc] || { jobObserved: '', jobDescription: '', reflection: '', missionText: '', photoBase64: '' };
+          reportText += `${idx + 1}. 장소: [ ${loc} ]\n`;
+          reportText += `  ① 관찰한 직업: ${m.jobObserved || "(미기재)"}\n`;
+          reportText += `  ② 직업에 대한 설명: ${m.jobDescription || "(미기재)"}\n`;
+          reportText += `  ③ 활동 후 보람 및 소감: ${m.reflection || "(미기재)"}\n`;
+          reportText += `  ④ 미션 내용: ${m.missionText || "(미기재)"}\n`;
+          reportText += `  ⑤ 사진 등록 여부: ${m.photoBase64 ? "📷 등록 완료" : "❌ 사진 미첨부"}\n`;
+          reportText += `-----------------------------------\n\n`;
+        });
+
+        const tempArea = document.createElement("textarea");
+        tempArea.value = reportText;
+        document.body.appendChild(tempArea);
+        tempArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(tempArea);
+        
+        showAlertModal("복사 완료", "현재까지 작성된 모든 활동 요약 글상자가 클립보드에 무사히 저장되었습니다! 메신저나 SNS에 바로 붙여넣어 백업하세요.", true);
+      }
+
+      // ========================================================
+      // 6. Template & Dynamic Layout Builders
+      // ========================================================
+      function render() {
+        const main = document.getElementById("main-content");
+        const info = state.studentInfo;
+
+        // --- Onboarding / Registration State ---
+        if (!state.isRegistered || state.isProfileEditing) {
+          main.innerHTML = `
+            <div class="space-y-6 my-auto pt-6 px-2 animate-[fadeIn_0.3s_ease-out]">
+              <!-- Title graphic card banner -->
+              <div class="text-center py-6">
+                <div class="w-16 h-16 bg-white rounded-3xl shadow-lg flex items-center justify-center mx-auto mb-4 border border-slate-100 hover:scale-110 md:transition-transform">
+                  <span class="text-3xl">🚌</span>
+                </div>
+                <h2 class="text-xl font-black text-slate-800 tracking-tight font-display mb-1.5">도외체험학습 활동 기록지</h2>
+                <span class="text-xs text-slate-500 font-medium">활동 내용을 작성하기 전에 학생 정보를 등록해 주세요.</span>
+              </div>
+
+              <!-- Login Form Container -->
+              <form id="onboarding-form" onsubmit="handleStudentInfoSubmit(event)" class="bg-white p-6 rounded-3xl border border-slate-150 shadow-xl space-y-4">
+                <div class="space-y-1">
+                  <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                    <i data-lucide="user" class="w-3.5 h-3.5 text-amber-500"></i> 이름
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="홍길동"
+                    value="${info.studentName}"
+                    oninput="state.studentInfo.studentName = this.value"
+                    class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-800 focus:bg-white focus:border-amber-400 focus:outline-none transition-all placeholder:text-slate-400 font-sans"
+                  />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                      <i data-lucide="hash" class="w-3.5 h-3.5 text-amber-500"></i> 학급 배정 (반)
+                    </label>
+                    <select
+                      required
+                      onchange="setStudentInfo('studentClass', this.value)"
+                      class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-800 focus:bg-white focus:border-amber-400 focus:outline-none transition-all"
+                    >
+                      <option value="">선택</option>
+                      ${[1, 2, 3, 4, 5, 6, 7].map(cls => `
+                        <option value="${cls}" ${Number(info.studentClass) === cls ? 'selected' : ''}>${cls}반</option>
+                      `).join('')}
+                    </select>
+                  </div>
+
+                  <div class="space-y-1">
+                    <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                      <i data-lucide="list-ordered" class="w-3.5 h-3.5 text-amber-500"></i> 개인 번호 (번)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max="25"
+                      placeholder="최대 25"
+                      value="${info.studentNumber}"
+                      oninput="state.studentInfo.studentNumber = this.value"
+                      class="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-800 focus:bg-white focus:border-amber-400 focus:outline-none transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+
+                <div class="space-y-1.5 pt-1">
+                  <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                    <i data-lucide="compass" class="w-3.5 h-3.5 text-amber-500"></i> 배정 팀 지정 (일정 코스)
+                  </label>
+                  <div class="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onclick="setStudentInfo('team', 'A팀')"
+                      class="py-3.5 rounded-2xl flex flex-col items-center justify-center border font-bold text-sm transition-all focus:outline-none ${info.team === 'A팀' ? 'border-amber-500 bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}"
+                    >
+                      <span class="text-xl mb-1">🚗</span>
+                      <span>A팀 일정코스</span>
+                    </button>
+                    <button
+                      type="button"
+                      onclick="setStudentInfo('team', 'B팀')"
+                      class="py-3.5 rounded-2xl flex flex-col items-center justify-center border font-bold text-sm transition-all focus:outline-none ${info.team === 'B팀' ? 'border-amber-500 bg-amber-500 text-white shadow-lg shadow-amber-500/30' : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'}"
+                    >
+                      <span class="text-xl mb-1">🚙</span>
+                      <span>B팀 일정코스</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="flex gap-2 pt-2">
+                  ${state.isProfileEditing ? `
+                    <button
+                      type="button"
+                      onclick="cancelProfileEditing()"
+                      class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-4 rounded-2xl transition-all text-sm active:scale-95"
+                    >
+                      취소
+                    </button>
+                  ` : ''}
+                  <button
+                    type="submit"
+                    class="${state.isProfileEditing ? 'w-2/3 bg-amber-400 hover:bg-amber-500 text-amber-950 shadow-md shadow-amber-400/20' : 'w-full bg-slate-900 hover:bg-slate-800 text-white shadow-lg'} font-bold py-4 rounded-2xl transition-all text-sm active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    ${state.isProfileEditing ? '정보 수정완료 ✨' : '기록지 작성 시작하기'}
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          `;
+          lucide.createIcons();
+          return;
+        }
+
+        // --- Active Log Sheet Interface state ---
+        const progressStats = calculateProgress();
+        const activeItinerary = ITINERARY_DATA[info.team][state.selectedDay] || [];
+
+        main.innerHTML = `
+          <!-- Welcome Student Badge Header card -->
+          <div class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 text-white p-5 rounded-3xl shadow-xl flex justify-between items-center relative overflow-hidden">
+            <div class="space-y-1 relative z-10">
+              <span class="text-[10px] bg-amber-500/20 text-amber-400 font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wide">
+                ${info.team} 활동 코스
+              </span>
+              <h3 class="text-md font-extrabold flex items-center gap-1.5">
+                ${info.studentClass}반 ${info.studentNumber}번 ${info.studentName}
+              </h3>
+              <p class="text-[10px] text-slate-300">오늘의 관찰 결과를 이곳에 기록해 보세요!</p>
+            </div>
+            
+            <button onclick="startProfileEditing()" class="bg-white/10 hover:bg-white/20 hover:scale-105 select-none text-slate-200 font-bold p-2.5 rounded-2xl text-[11px] flex items-center gap-1 transition-all relative z-10">
+              <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+              정보 수정
+            </button>
+            <div class="absolute -right-6 -bottom-6 w-24 h-24 bg-gradient-to-br from-amber-500/10 via-amber-300/10 to-transparent rounded-full opacity-60 pointer-events-none"></div>
+          </div>
+
+          <!-- Total Progress Card Panel -->
+          <div class="bg-white p-4 rounded-3xl border border-slate-150 shadow-md space-y-3">
+            <div class="flex justify-between items-center text-xs">
+              <span class="font-extrabold text-slate-800 flex items-center gap-1">
+                ⭐ 나의 미션 달성률
+              </span>
+              <span id="progress-count-text" class="text-[11px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                ${progressStats.completedCount} / ${progressStats.total}개 완료
+              </span>
+            </div>
+            <div class="space-y-1.5">
+              <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div id="progress-percent-bar" class="bg-gradient-to-r from-amber-400 to-amber-500 h-2.5 rounded-full transition-all duration-500" style="width: ${progressStats.percent}%"></div>
+              </div>
+              <div class="flex justify-between items-center text-[10px]">
+                <span id="progress-percent-text" class="font-display font-extrabold text-amber-500 text-sm">
+                  ${progressStats.percent}%
+                </span>
+                <span class="text-slate-400 font-medium">※ 주얼리 완성 조건: 장소별 ⑤개 조건 모두 충족 시 완료</span>
+              </div>
+            </div>
+            <p class="text-[10px] text-slate-500 font-medium text-center bg-slate-50 py-1 rounded-lg">
+              ※ 장소별 ⑤가지 미션(직업설명 50자 이상, 소감 50자 이상, 인증사진 첨부 필수)을 완료해야 보석이 채워집니다!
+            </p>
+          </div>
+
+          <!-- Days Selection Tabs Navigation -->
+          <div class="grid grid-cols-3 gap-2 bg-slate-100 p-1 rounded-2xl">
+            ${[1, 2, 3].map(d => `
+              <button
+                onclick="changeDay(${d})"
+                class="py-2.5 rounded-xl font-bold text-xs text-center transition-all ${state.selectedDay === d ? 'bg-white text-slate-800 shadow-md transform scale-[1.02]' : 'text-slate-500 hover:text-slate-700 hover:bg-white/40'}"
+              >
+                ${d}일차 일정
+              </button>
+            `).join('')}
+          </div>
+
+          <!-- Itinerary interactive logs lists -->
+          <div class="space-y-3 flex-1" id="accordion-list">
+            ${activeItinerary.map((item, idx) => {
+              const log = state.missions[item.location] || { jobObserved: '', jobDescription: '', reflection: '', missionText: '', photoBase64: '' };
+              const isFinished = isSingleLocationFinished(item.location);
+              const isExpanded = state.expandedLocation === item.location;
+
+              return `
+                <div class="bg-white rounded-3xl border ${isFinished ? 'border-emerald-200 bg-emerald-50/5' : isExpanded ? 'border-amber-400 glow-amber' : 'border-slate-150'} transition-all overflow-hidden duration-300">
+                  
+                  <!-- Accordion visible header tab -->
+                  <div
+                    onclick="toggleAccordion('${item.location}')"
+                    class="p-4 flex justify-between items-center cursor-pointer select-none"
+                  >
+                    <div class="flex items-center gap-3">
+                      <span class="text-2xl">${item.emoji}</span>
+                      <div class="text-left">
+                        <div class="flex items-center gap-1.5">
+                          <h4 class="font-black text-slate-800 text-sm tracking-tight">${item.location}</h4>
+                          ${isFinished ? `
+                            <span class="text-[9px] font-bold bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                              💎 미션 완성
+                            </span>
+                          ` : `
+                            <span class="text-[9px] font-bold bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded-full">
+                              기록 작성중
+                            </span>
+                          `}
+                        </div>
+                        <p class="text-[10px] text-slate-500 font-medium truncate max-w-[210px] mt-0.5">${item.description}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-slate-400 transition-all"></i>
+                    </div>
+                  </div>
+
+                  <!-- Accordion expansion editable area form -->
+                  ${isExpanded ? `
+                    <div class="px-4 pb-5 pt-1 border-t border-slate-100 space-y-4 animate-[fadeIn_0.2s_ease-out]">
+                      
+                      <!-- Career tips tags block -->
+                      <div class="bg-slate-50 p-3 rounded-2xl border border-slate-150 space-y-2">
+                        <span class="text-[10px] font-extrabold text-slate-500 uppercase flex items-center gap-1">
+                          💡 추천 관찰 직업 리스트
+                        </span>
+                        <div class="flex flex-wrap gap-1.5">
+                          ${item.tips.map(tip => `
+                            <span
+                              class="text-[10px] px-2.5 py-1 rounded-xl font-semibold border bg-white text-slate-600 border-slate-250 select-none"
+                            >
+                              # ${tip}
+                            </span>
+                          `).join('')}
+                        </div>
+                      </div>
+
+                      <!-- Sub-Log saving forms info -->
+                      <div class="space-y-3.5">
+                        
+                        <!-- 1. Job observed input text -->
+                        <div class="space-y-1">
+                          <label class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                            <span class="w-4 h-4 rounded-full bg-slate-200 text-[10px] text-slate-800 flex items-center justify-center font-display font-bold">1</span> 
+                            이곳에서 집중 관찰한 직업
+                          </label>
+                          <input
+                            type="text"
+                            id="input-${item.location}-jobObserved"
+                            placeholder="직업명 직접 입력 (예: 공항 조종사)"
+                            value="${log.jobObserved || ''}"
+                            oninput="updateField('${item.location}', 'jobObserved', this.value)"
+                            class="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-amber-400 focus:bg-white focus:outline-none transition-all font-medium text-slate-800"
+                          />
+                        </div>
+
+                        <!-- 2. Job Description with strict 50-letter limit details -->
+                        <div class="space-y-1">
+                          <div class="flex justify-between items-center">
+                            <label class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                              <span class="w-4 h-4 rounded-full bg-slate-200 text-[10px] text-slate-800 flex items-center justify-center font-display font-bold">2</span> 
+                              그 직업에 대한 설명 (50자 이상 필수)
+                            </label>
+                            <span id="status-badge-${item.location}-jobDescription" class="text-[10px] font-bold ${log.jobDescription.trim().length >= 50 ? 'text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-lg' : 'text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-lg'}">
+                              ${log.jobDescription.trim().length >= 50 ? '✓ 조건 충족' : `최소 50자 / 현재 ${log.jobDescription.trim().length}자`}
+                            </span>
+                          </div>
+                          <textarea
+                            id="textarea-${item.location}-jobDescription"
+                            rows="3"
+                            placeholder="관찰한 직업의 주요 업무, 필요한 자격이나 태도, 그리고 이곳에서 실제로 하고 있는 모습을 50자 이상으로 묘사해 봐요."
+                            oninput="updateField('${item.location}', 'jobDescription', this.value)"
+                            class="w-full px-3 py-2 text-xs bg-white border ${log.jobDescription.trim().length >= 50 ? 'border-emerald-200 focus:border-emerald-400' : 'border-slate-200 focus:border-amber-400'} rounded-xl focus:bg-white focus:outline-none transition-all font-medium text-slate-800 resize-none"
+                          >${log.jobDescription || ''}</textarea>
+                        </div>
+
+                        <!-- 3. Reflection with strict 50-letter limit -->
+                        <div class="space-y-1">
+                          <div class="flex justify-between items-center">
+                            <label class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                              <span class="w-4 h-4 rounded-full bg-slate-200 text-[10px] text-slate-800 flex items-center justify-center font-display font-bold">3</span> 
+                              활동 후 느낀 소감 (50자 이상 필수)
+                            </label>
+                            <span id="status-badge-${item.location}-reflection" class="text-[10px] font-bold ${log.reflection.trim().length >= 50 ? 'text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded-lg' : 'text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-lg'}">
+                              ${log.reflection.trim().length >= 50 ? '✓ 조건 충족' : `최소 50자 / 현재 ${log.reflection.trim().length}자`}
+                            </span>
+                          </div>
+                          <textarea
+                            id="textarea-${item.location}-reflection"
+                            rows="3"
+                            placeholder="이 체험 활동을 하면서 인상 깊었던 점, 깨달은 사실, 그리고 나의 진로 고민 과정에 어떤 영향을 더했는지 50자 이상 실감나게 적어봐요."
+                            oninput="updateField('${item.location}', 'reflection', this.value)"
+                            class="w-full px-3 py-2 text-xs bg-white border ${log.reflection.trim().length >= 50 ? 'border-emerald-200 focus:border-emerald-400' : 'border-slate-200 focus:border-amber-400'} rounded-xl focus:bg-white focus:outline-none transition-all font-medium text-slate-800 resize-none"
+                          >${log.reflection || ''}</textarea>
+                        </div>
+
+                        <!-- 4. Target Specific Mission text -->
+                        <div class="space-y-1">
+                          <label class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                            <span class="w-4 h-4 rounded-full bg-slate-200 text-[10px] text-slate-800 flex items-center justify-center font-display font-bold">4</span> 
+                            미션 수행 내용 요약
+                          </label>
+                          <textarea
+                            rows="2"
+                            placeholder="선생님이 제시한 단체사진 촬영이나 질문 해결 등 대표적인 현장 미션의 해결 과정을 한 줄로 적어봐요."
+                            oninput="updateField('${item.location}', 'missionText', this.value)"
+                            class="w-full px-3 py-2 text-xs bg-white border border-slate-200 focus:border-amber-400 rounded-xl focus:bg-white focus:outline-none transition-all font-medium text-slate-800 resize-none"
+                          >${log.missionText || ''}</textarea>
+                        </div>
+
+                        <!-- 5. Certified Image Upload File input -->
+                        <div class="space-y-1.5">
+                          <label class="text-xs font-bold text-slate-700 flex items-center gap-1">
+                            <span class="w-4 h-4 rounded-full bg-slate-200 text-[10px] text-slate-800 flex items-center justify-center font-display font-bold">5</span> 
+                            활동 인증 사진 등록 (필수)
+                          </label>
+                          
+                          <div id="photo-section-${item.location}">
+                            ${log.photoBase64 ? `
+                              <div class="bg-white p-3 rounded-2xl border border-dashed border-emerald-300 relative flex flex-col items-center gap-2">
+                                <div class="w-full h-36 bg-slate-100 rounded-xl overflow-hidden flex items-center justify-center relative shadow-inner">
+                                  <img 
+                                    src="${log.photoBase64}" 
+                                    alt="활동 인증샷" 
+                                    class="object-contain w-full h-full"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                  <button
+                                    type="button"
+                                    onclick="deletePhoto('${item.location}')"
+                                    class="absolute right-2.5 top-2.5 bg-rose-500 hover:bg-rose-600 text-white p-1.5 rounded-full shadow-md hover:scale-105 transition-all text-xs"
+                                    title="사진 삭제"
+                                  >
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                  </button>
+                                </div>
+                                <span class="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 select-none">
+                                  ✓ 사진 등록이 무사히 완료되었습니다.
+                                </span>
+                              </div>
+                            ` : `
+                              <div class="relative">
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onchange="triggerPhotoUpload('${item.location}', this)"
+                                  className="hidden"
+                                  id="photo-input-${item.location}"
+                                  style="display: none;"
+                                />
+                                <label
+                                  for="photo-input-${item.location}"
+                                  class="w-full flex flex-col items-center justify-center py-5 px-3 border-2 border-dashed border-slate-200 hover:border-amber-400 bg-white hover:bg-amber-50/10 rounded-2xl cursor-pointer transition-all space-y-1"
+                                >
+                                  <i data-lucide="camera" class="w-6 h-6 text-slate-400"></i>
+                                  <span class="text-xs font-semibold text-slate-600">이곳에서 인증받을 활동 사진 첨부</span>
+                                  <span class="text-[10px] text-slate-400">(카메라로 직접 촬영 또는 앨범 파일 선택)</span>
+                                </label>
+                              </div>
+                            `}
+                          </div>
+                        </div>
+
+                      </div>
+
+                      <!-- Sub saving state message panel -->
+                      <div class="flex justify-between items-center pt-2 text-[10px] text-slate-400 border-t border-slate-100" id="save-feedback-${item.location}">
+                        <span>✓ 안전하게 임시 보관됨</span>
+                      </div>
+
+                    </div>
+                  ` : ''}
+
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <!-- Send Reports Action Section -->
+          <div class="pt-2 space-y-3">
+            <button
+              onclick="submitAllMissions()"
+              ${state.submitting ? 'disabled' : ''}
+              class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 font-extrabold text-white py-4 rounded-3xl transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2 ${state.submitting ? 'opacity-50 cursor-not-allowed' : ''}"
+            >
+              ${state.submitting ? `
+                <span class="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent inline-block"></span>
+                서버 전송 및 저장 진행 중...
+              ` : `
+                <i data-lucide="upload" class="w-4 h-4"></i>
+                체험학습 최종 보고서 제출 (선생님께 전달)
+              `}
+            </button>
+
+            <!-- Manual Copy Panel for offline resiliency -->
+            <div class="bg-amber-50/50 p-4 rounded-3xl border border-amber-200/60 text-center space-y-2">
+              <span class="text-xs font-bold text-amber-800 block">⚠️ 네트워크 제출이 혹시 오류 나나요?</span>
+              <p class="text-[10px] text-amber-700 leading-normal">
+                연결 오류나 인터넷 끊김이 있을 때도 걱정 마세요! 작성된 데이터는 휴대폰에 안전하게 임시 저장되어 있습니다. 아래 백업 복사 버튼을 누른 다음 선생님 메신저로 텍스트를 바로 전송하세요.
+              </p>
+              <button
+                onclick="copyRawReportToClipboard()"
+                class="bg-white hover:bg-amber-100/30 text-amber-800 font-bold px-4 py-2 rounded-xl text-xs border border-amber-200 transition-all shadow-xs inline-flex items-center gap-1.5"
+              >
+                <i data-lucide="clipboard" class="w-3.5 h-3.5"></i>
+                전체 작성 내용 클립보드 복사
+              </button>
+            </div>
+          </div>
+        `;
+
+        // Refresh icons generated via dynamic inserts
+        lucide.createIcons();
+      }
+
+      // ========================================================
+      // 7. Initial startup hook
+      // ========================================================
+      window.addEventListener("DOMContentLoaded", () => {
+        loadPersistedState();
+        startClock();
+        render();
+      });
+    </script>
+  </body>
+</html>
