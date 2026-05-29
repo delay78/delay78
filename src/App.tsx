@@ -43,7 +43,7 @@ import { ITINERARY_DATA } from './itineraryData';
 // [중요] 구글 스프레드시트 배포 구글 앱스 스크립트(GAS) Web App 주소입니다.
 // 학교 선생님께서 발급받은 배포 URL을 이곳에 대입해 주시면 실시간 자동 저장이 연동됩니다!
 // ==========================================
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwwW4U9um80xeVFgcA56-PY2Xx6HcwvRzB7qlTHyutE57PfFlt87xB3ykF6EuVchXQd/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxvE_m5-k7zr8eU6dHjrx5QEvUcvjmULRRd1WtyXuM727oDkHSp-gqBwLsl6oq7f3Ue/exec";
 
 export default function App() {
   // --- States ---
